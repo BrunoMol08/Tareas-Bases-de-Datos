@@ -41,5 +41,5 @@ Código:
 
 	select * from histogram('pago','extract(epoch from dias_promedio_de_pago)');
 
-![alt text](https://github.com/BrunoMol08/Tareas-Bases-de-Datos/blob/main/WhatsApp%20Image%202021-04-09%20at%2015.51.02.jpeg)
+https://raw.githubusercontent.com/BrunoMol08/Tareas-Bases-de-Datos/blob/main/WhatsApp%20Image%202021-04-09%20at%2015.51.02.jpeg
 
