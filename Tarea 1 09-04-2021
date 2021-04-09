@@ -6,41 +6,41 @@ Bruno Molina Zacatenco
 
 Código:
 
-	with t as (
-		select p.payment_date as fecha, p.payment_id as id from payment p
-		where p.payment_id>1
-	),s as(
-		select sum(age(t.fecha, pa.payment_date)) as tiempo, pa.customer_id as idd, count(pa.payment_id) as suma 
-		from payment pa join t on (pa.payment_id = t.id-1)
-		where age(t.fecha, pa.payment_date)>'00:00'::interval
-		group by pa.customer_id 
-	) 
-	select concat(c.first_name, ' ', c.last_name) as nombre_clientes, (s.tiempo/s.suma) as dias_promedio_de_pago, c.customer_id as id 
-	from customer c join s on (c.customer_id = s.idd)
-	group by c.customer_id,(s.tiempo/s.suma),concat(c.first_name, ' ', c.last_name)
-	order by c.customer_id;
+with t as (
+	select p.payment_date as fecha, p.payment_id as id from payment p
+	where p.payment_id>1
+),s as(
+	select sum(age(t.fecha, pa.payment_date)) as tiempo, pa.customer_id as idd, count(pa.payment_id) as suma 
+	from payment pa join t on (pa.payment_id = t.id-1)
+	where age(t.fecha, pa.payment_date)>'00:00'::interval
+	group by pa.customer_id 
+) 
+select concat(c.first_name, ' ', c.last_name) as nombre_clientes, (s.tiempo/s.suma) as dias_promedio_de_pago, c.customer_id as id 
+from customer c join s on (c.customer_id = s.idd)
+group by c.customer_id,(s.tiempo/s.suma),concat(c.first_name, ' ', c.last_name)
+order by c.customer_id;
 
 2. ¿Sigue una distribución normal? 
 
 Código:
 
-	create table pago as(with t as (
-		select p.payment_date as fecha, p.payment_id as id from payment p
-		where p.payment_id>1
-	),s as(
-		select sum(age(t.fecha, pa.payment_date)) as tiempo, pa.customer_id as idd, count(pa.payment_id) as suma 
-		from payment pa join t on (pa.payment_id = t.id-1)
-		where age(t.fecha, pa.payment_date)>'00:00'::interval
-		group by pa.customer_id 
-	) 
-	select concat(c.first_name, ' ', c.last_name),(s.tiempo/s.suma) as dias_promedio_de_pago, pay.customer_id as id 
-	from payment pay join s on (pay.customer_id = s.idd)
-	join customer c using (customer_id)
-	group by pay.customer_id,(s.tiempo/s.suma),concat(c.first_name, ' ', c.last_name));
+create table pago as(with t as (
+	select p.payment_date as fecha, p.payment_id as id from payment p
+	where p.payment_id>1
+),s as(
+	select sum(age(t.fecha, pa.payment_date)) as tiempo, pa.customer_id as idd, count(pa.payment_id) as suma 
+	from payment pa join t on (pa.payment_id = t.id-1)
+	where age(t.fecha, pa.payment_date)>'00:00'::interval
+	group by pa.customer_id 
+) 
+select concat(c.first_name, ' ', c.last_name),(s.tiempo/s.suma) as dias_promedio_de_pago, pay.customer_id as id 
+from payment pay join s on (pay.customer_id = s.idd)
+join customer c using (customer_id)
+group by pay.customer_id,(s.tiempo/s.suma),concat(c.first_name, ' ', c.last_name));
 
-	drop table pago; --Esto es extra, por si se busca eliminar la tabla creada
+drop table pago; --Esto es extra, por si se busca eliminar la tabla creada
 
-	select * from histogram('pago','extract(epoch from dias_promedio_de_pago)');
+select * from histogram('pago','extract(epoch from dias_promedio_de_pago)');
 
 Nota: Para poder realizar el histograma, se necesito de pasar el tiempo promedio a segundos, para que pudiera sacar las frecuencias y calcularlo. 
 
@@ -53,55 +53,55 @@ Link para ver la imagen: https://github.com/BrunoMol08/Tareas-Bases-de-Datos/blo
 
 Código: 
 
-	create view dias_de_pago_promedio as (with t as (
-		select p.payment_date as fecha, p.payment_id as id from payment p
-		where p.payment_id>1
-	),s as(
-		select sum(age(t.fecha, pa.payment_date)) as tiempo, pa.customer_id as idd, count(pa.payment_id) as suma 
-		from payment pa join t on (pa.payment_id = t.id-1)
-		where age(t.fecha, pa.payment_date)>'00:00'::interval
-		group by pa.customer_id 
-	) 
-	select concat(c.first_name, ' ', c.last_name) as nombre_clientes, (s.tiempo/s.suma) as dias_promedio_de_pago, pay.customer_id as id 
-	from payment pay join s on (pay.customer_id = s.idd)
-	join customer c using (customer_id)
-	group by pay.customer_id,(s.tiempo/s.suma),concat(c.first_name, ' ', c.last_name));
+create view dias_de_pago_promedio as (with t as (
+	select p.payment_date as fecha, p.payment_id as id from payment p
+	where p.payment_id>1
+),s as(
+	select sum(age(t.fecha, pa.payment_date)) as tiempo, pa.customer_id as idd, count(pa.payment_id) as suma 
+	from payment pa join t on (pa.payment_id = t.id-1)
+	where age(t.fecha, pa.payment_date)>'00:00'::interval
+	group by pa.customer_id 
+) 
+select concat(c.first_name, ' ', c.last_name) as nombre_clientes, (s.tiempo/s.suma) as dias_promedio_de_pago, pay.customer_id as id 
+from payment pay join s on (pay.customer_id = s.idd)
+join customer c using (customer_id)
+group by pay.customer_id,(s.tiempo/s.suma),concat(c.first_name, ' ', c.last_name));
 
-	drop view dias_de_pago_promedio; --Esto es extra, por si se busca eliminar la vista creada
-	
-	create sequence codi minvalue 1 maxvalue 99999 increment by 1 
-	create sequence codigo minvalue 0 maxvalue 99999 increment by 1
-	drop sequence codi,codigo --Esto es extra, para eliminar la sequencia creada
-	
-	create table dias_de_renta_promedio as (with f as (
-		select nextval('codi') as valor_ade, r.rental_date as dia, r.rental_id as re_id, r.customer_id as id from rental r 
-		where r.rental_id<>76
-		group by r.rental_date, r.rental_id, r.customer_id 
-		order by r.customer_id, r.rental_date 
-	), d as (
-		select nextval('codigo') as valor_ori, re.rental_date as fecha, re.rental_id as id_rent, re.customer_id as id_cust from rental re
-		order by re.customer_id, re.rental_date 
-	), l as (
-		select sum(age(f.dia,d.fecha)) as fecha_sum, f.id as orig_id, count(f.id) as cuenta from d 
-		join f on (d.valor_ori = f.valor_ade-1)
-		where age(f.dia,d.fecha)>'00:00'::interval
-		group by f.id
-		order by f.id
-	)
-	select concat(c.first_name, ' ', c.last_name) as nombre_cliente, (l.fecha_sum/l.cuenta) as promedio_de_renta,
-	l.orig_id as cliente_id from customer c 
-	join l on (c.customer_id = l.orig_id)
-	group by (l.fecha_sum/l.cuenta), concat(c.first_name, ' ', c.last_name), l.orig_id
-	order by l.orig_id);
+drop view dias_de_pago_promedio; --Esto es extra, por si se busca eliminar la vista creada
 
-	drop table dias_de_renta_promedio; --Esto es extra, por si se busca eliminar la tabla creada
-	
-	select dp.nombre_clientes as cliente, dp.dias_promedio_de_pago as promedio_de_pagos, dr.promedio_de_renta as promedio_de_rentas, 
-	(dr.promedio_de_renta-dp.dias_promedio_de_pago) as diferencia, dp.id as id_del_cliente
-	from dias_de_pago_promedio dp 
-	join dias_de_renta_promedio dr on (dp.id = dr.cliente_id)
-	group by dp.id,(dr.promedio_de_renta-dp.dias_promedio_de_pago),dr.promedio_de_renta,dp.dias_promedio_de_pago,dp.nombre_clientes
-	order by dp.id
+create sequence codi minvalue 1 maxvalue 99999 increment by 1 
+create sequence codigo minvalue 0 maxvalue 99999 increment by 1
+drop sequence codi,codigo --Esto es extra, para eliminar la sequencia creada
+
+create table dias_de_renta_promedio as (with f as (
+	select nextval('codi') as valor_ade, r.rental_date as dia, r.rental_id as re_id, r.customer_id as id from rental r 
+	where r.rental_id<>76
+	group by r.rental_date, r.rental_id, r.customer_id 
+	order by r.customer_id, r.rental_date 
+), d as (
+	select nextval('codigo') as valor_ori, re.rental_date as fecha, re.rental_id as id_rent, re.customer_id as id_cust from rental re
+	order by re.customer_id, re.rental_date 
+), l as (
+	select sum(age(f.dia,d.fecha)) as fecha_sum, f.id as orig_id, count(f.id) as cuenta from d 
+	join f on (d.valor_ori = f.valor_ade-1)
+	where age(f.dia,d.fecha)>'00:00'::interval
+	group by f.id
+	order by f.id
+)
+select concat(c.first_name, ' ', c.last_name) as nombre_cliente, (l.fecha_sum/l.cuenta) as promedio_de_renta,
+l.orig_id as cliente_id from customer c 
+join l on (c.customer_id = l.orig_id)
+group by (l.fecha_sum/l.cuenta), concat(c.first_name, ' ', c.last_name), l.orig_id
+order by l.orig_id);
+
+drop table dias_de_renta_promedio; --Esto es extra, por si se busca eliminar la tabla creada
+
+select dp.nombre_clientes as cliente, dp.dias_promedio_de_pago as promedio_de_pagos, dr.promedio_de_renta as promedio_de_rentas, 
+(dr.promedio_de_renta-dp.dias_promedio_de_pago) as diferencia, dp.id as id_del_cliente
+from dias_de_pago_promedio dp 
+join dias_de_renta_promedio dr on (dp.id = dr.cliente_id)
+group by dp.id,(dr.promedio_de_renta-dp.dias_promedio_de_pago),dr.promedio_de_renta,dp.dias_promedio_de_pago,dp.nombre_clientes
+order by dp.id
 	
 Explicación del código: Para poder comparar el promedio del tiempo de pagos y el promedio del tiempo de renta, primero, se creó una vista y una tabla. La vista, es 
 la que se usó en el inciso 1) -se incluye código para eliminar la vista-, la tabla, es el código que nos devuelve el tiempo promedio de renta -también se incluye 
