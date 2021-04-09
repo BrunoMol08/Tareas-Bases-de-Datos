@@ -1,5 +1,6 @@
 # Tarea 1 09-04-2021
 Tarea de Bases de Datos 09-04-2021
+Bruno Molina Zacatenco
 
 1. ¿Cuál es el promedio, en formato human-readable, de tiempo entre cada pago por cliente de la BD Sakila?
 
@@ -72,7 +73,7 @@ Código:
 	create sequence codigo minvalue 0 maxvalue 99999 increment by 1
 	drop sequence codi,codigo --Esto es extra, para eliminar la sequencia creada
 	
-	create view dias_de_renta_promedio as (with f as (
+	create table dias_de_renta_promedio as (with f as (
 		select nextval('codi') as valor_ade, r.rental_date as dia, r.rental_id as re_id, r.customer_id as id from rental r 
 		where r.rental_id<>76
 		group by r.rental_date, r.rental_id, r.customer_id 
@@ -93,7 +94,7 @@ Código:
 	group by (l.fecha_sum/l.cuenta), concat(c.first_name, ' ', c.last_name), l.orig_id
 	order by l.orig_id);
 
-	drop view dias_de_renta_promedio; --Esto es extra, por si se busca eliminar la vista creada
+	drop table dias_de_renta_promedio; --Esto es extra, por si se busca eliminar la tabla creada
 	
 	select dp.nombre_clientes as cliente, dp.dias_promedio_de_pago as promedio_de_pagos, dr.promedio_de_renta as promedio_de_rentas, 
 	(dr.promedio_de_renta-dp.dias_promedio_de_pago) as diferencia, dp.id as id_del_cliente
@@ -102,13 +103,17 @@ Código:
 	group by dp.id,(dr.promedio_de_renta-dp.dias_promedio_de_pago),dr.promedio_de_renta,dp.dias_promedio_de_pago,dp.nombre_clientes
 	order by dp.id
 	
-Explicación del código: Para poder comparar el promedio del tiempo de pagos y el promedio del tiempo de renta, primero, cree dos vistas. La primera vista, es la que se uso
-en el inciso 1) -se incluye código para eliminar la vista-, la segunda vista, es el código que nos devuelve el tiempo promedio de renta -también se incluye código para 
-eliminar la vista-. Para poder relacionar los tiempos y que así nos diera el promedio, cree dos secuencias, la cual proporciona un numero a cada uno de los querys de la common 
-table expression. Especifico esto, porque cada vez que se quiera correr el query en general hay que seguir los siguientes pasos: primero, eliminamos la vista dias_de_renta_promedio
-con el código previamente proporcionado, después, borramos las secuencias -se incluye código para eliminar la secuencia-, una vez realizado eso, volvemos a crear la secuencia 
-cod y código, y creamos de nuevo la vista dias_de_renta_promedio. Ya realizado esto, podemos correr el query final, el cual nos arroja los resultados de la comparación.
+Explicación del código: Para poder comparar el promedio del tiempo de pagos y el promedio del tiempo de renta, primero, se creó una vista y una tabla. La vista, es 
+la que se usó en el inciso 1) -se incluye código para eliminar la vista-, la tabla, es el código que nos devuelve el tiempo promedio de renta -también se incluye 
+código para eliminar la tabla-. Para poder relacionar los tiempos y que así nos diera el promedio, cree dos secuencias, la cual proporciona un numero a cada uno de los querys 
+de la common table expression. Especifico esto, porque cuando se quiera correr el query hay que seguir los siguientes pasos: primero, cree la vista, y también creamos las 
+secuencias cod y código, después, creamos la tabla dias_de_renta_promedio, una vez hecho estos pasos, ya podemos correr el ultimo query el cual nos arroja los resultados de 
+la comparación.
 
+Interpretación de los resultados: En comparación, pude notar que no difieren por mucho los datos. Fuera del primer cliente, el cual nos sale con una diferencia muy grande, eso
+se dio a que en el examen dimos de alta una renta desde el customer_id = 1. 
+
+Link de la foto: https://github.com/BrunoMol08/Tareas-Bases-de-Datos/blob/Images/Comparaci%C3%B3n.png
 	
 
 
