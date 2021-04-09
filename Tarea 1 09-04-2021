@@ -41,5 +41,5 @@ Código:
 
 	select * from histogram('pago','extract(epoch from dias_promedio_de_pago)');
 
-![Distribución normal](images/distribucion.jpeg)
+![Distribución normal](images/Distribucion.jpeg)
 
