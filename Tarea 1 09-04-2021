@@ -1,0 +1,45 @@
+# Tarea 1 09-04-2021
+Tarea de Bases de Datos 09-04-2021
+
+1. ¿Cuál es el promedio, en formato human-readable, de tiempo entre cada pago por cliente de la BD Sakila?
+
+Código:
+
+	with t as (
+		select p.payment_date as fecha, p.payment_id as id from payment p
+		where p.payment_id>1
+	),s as(
+		select sum(age(t.fecha, pa.payment_date)) as tiempo, pa.customer_id as idd, count(pa.payment_id) as suma 
+		from payment pa join t on (pa.payment_id = t.id-1)
+		where age(t.fecha, pa.payment_date)>'00:00'::interval
+		group by pa.customer_id 
+	) 
+	select concat(c.first_name, ' ', c.last_name) as nombre_clientes, (s.tiempo/s.suma) as dias_promedio_de_pago, c.customer_id as id 
+	from customer c join s on (c.customer_id = s.idd)
+	group by c.customer_id,(s.tiempo/s.suma),concat(c.first_name, ' ', c.last_name)
+	order by c.customer_id;
+
+2. ¿Sigue una distribución normal? 
+
+Código:
+
+	create table pago as(with t as (
+		select p.payment_date as fecha, p.payment_id as id from payment p
+		where p.payment_id>1
+	),s as(
+		select sum(age(t.fecha, pa.payment_date)) as tiempo, pa.customer_id as idd, count(pa.payment_id) as suma 
+		from payment pa join t on (pa.payment_id = t.id-1)
+		where age(t.fecha, pa.payment_date)>'00:00'::interval
+		group by pa.customer_id 
+	) 
+	select concat(c.first_name, ' ', c.last_name),(s.tiempo/s.suma) as dias_promedio_de_pago, pay.customer_id as id 
+	from payment pay join s on (pay.customer_id = s.idd)
+	join customer c using (customer_id)
+	group by pay.customer_id,(s.tiempo/s.suma),concat(c.first_name, ' ', c.last_name));
+
+	drop table pago; --Esto es extra, por si se busca eliminar la tabla creada
+
+	select * from histogram('pago','extract(epoch from dias_promedio_de_pago)');
+
+
+
