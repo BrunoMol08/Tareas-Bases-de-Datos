@@ -1,0 +1,33 @@
+# Tarea 2 13-04-2021
+Tarea de Bases de Datos 09-04-2021
+Bruno Molina Zacatenco
+
+1. Automatización de las tiendas de renta de video.
+
+  with peliculas_tienda as (
+    select i.store_id as id, count(i.film_id) as numero_de_peliculas from inventory i group by store_id),
+
+--Máximo número de peliculas por cilindro
+	numero_max as (
+    select 50/.5 as peliculas_por_cilindro),
+
+--La altura que debe de tener el cilindro
+	altura as (
+    select 1.5*maxn.peliculas_por_cilindro as alt from numero_max maxn),
+
+--La radio que debe de tener la base del cilindro
+	radio as (
+    select sqrt(power(30/2,2) + power(21/2,2)) as rad)
+
+--El volumen que debe de tener el cilindro
+ select pi()*power(r.rad,2)*a.alt as el_volumen from radio r, altura a;
+
+create view cilindros as (
+  select i.store_id as id, count(i.film_id) as numero_de_peliculas from inventory i group by store_id);
+
+
+--La cantidad que necesitamos de cilindros por tienda
+
+select cl.id, ceil(cl.numero_de_peliculas/100) as cantidad_de_cilindros_necesarios from cilindros cl
+
+drop view cilindros; -- Por si se quisiera llegar a utilizar.
