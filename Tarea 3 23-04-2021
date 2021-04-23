@@ -12,118 +12,121 @@ Solución: Para este problema se plantearon varios querys, los cuales nos ayudan
 
 -- Vista que ayuda a ordenar los dato por customer_id, con la cantidad total de su orden -- 
 
-  create view cantidad_por_orden as (with t as(
-    select o.customer_id as customer, o.order_id as orden, o.order_date as fecha
-    from orders o
-    order by o.customer_id, o.order_date asc
-  ), p as(
-    select od.order_id as id_orden, (od.quantity*od.unit_price) as cant_precio
-    from order_details od 
-  ), l as(
-    select sum(cant_precio) as cant_per_orden , id_orden as id from p
-    group by id_orden
-    order by id_orden asc
-  )
-  select l.cant_per_orden as cantidad, l.id as id_ord, t.customer as cust_id, t.fecha as fecha_orden
-  from l join t on(l.id=t.orden)
-  order by t.customer, t.fecha);
+	create view cantidad_por_orden as (with t as(
+	select o.customer_id as customer, o.order_id as orden, o.order_date as fecha
+	from orders o
+	order by o.customer_id, o.order_date asc
+	), p as(
+	select od.order_id as id_orden, (od.quantity*od.unit_price) as cant_precio
+	from order_details od 
+	), l as(
+	select sum(cant_precio) as cant_per_orden , id_orden as id from p
+	group by id_orden
+	order by id_orden asc
+	)
+	select l.cant_per_orden as cantidad, l.id as id_ord, t.customer as cust_id, t.fecha as fecha_orden
+	from l join t on(l.id=t.orden)
+	order by t.customer, t.fecha);
 
-  drop view cantidad_por_orden; --Por si se requiere quitar la vista--
+	drop view cantidad_por_orden; --Por si se requiere quitar la vista--
 
-  select * from cantidad_por_orden; 
+	select * from cantidad_por_orden; 
 
 -- Query que nos proporciona el desfase de tiempo, junto con la diferencia entre cada compra de cada customer --
 
-  with u as(
-    select cpo.cantidad as cantidad_orden, cpo.id_ord as orden_id, cpo.cust_id as id_cliente,
-    cpo.fecha_orden as fc, row_number() over w as rownum
-    from cantidad_por_orden cpo
-    window w as (partition by cpo.cust_id)
-    order by cpo.fecha_orden asc
-  ), i as(
-    select cpo.cantidad as cantidad_orden, cpo.id_ord as orden_id, cpo.cust_id as id_cliente,
-    cpo.fecha_orden as fc, row_number() over w as rownum
-    from cantidad_por_orden cpo
-    window w as (partition by cpo.cust_id)
-    order by cpo.fecha_orden asc
-  )
-  select (u.cantidad_orden-i.cantidad_orden) as dif, u.id_cliente as id, u.orden_id as orden,
-  age(u.fc,i.fc) as diferencia_hasta_la_otra_compra
-  from u join i on (u.rownum = i.rownum+1)
-  where u.id_cliente = i.id_cliente  
-  order by u.id_cliente asc;
-
--- Query que nos proporciona el promedio de compra, respecto al orden ascendiente de la fecha de cada compra por cliente, 		--
--- el promedio es calculado por medio de: la suma de todas las diferencias entre la compra realizada en t y la realizada en t-1 --
--- todo eso dividido entre el total de compras por cliente.																		--
-with u as(
+	with u as(
 	select cpo.cantidad as cantidad_orden, cpo.id_ord as orden_id, cpo.cust_id as id_cliente,
 	cpo.fecha_orden as fc, row_number() over w as rownum
 	from cantidad_por_orden cpo
 	window w as (partition by cpo.cust_id)
 	order by cpo.fecha_orden asc
-), i as(
+	), i as(
 	select cpo.cantidad as cantidad_orden, cpo.id_ord as orden_id, cpo.cust_id as id_cliente,
 	cpo.fecha_orden as fc, row_number() over w as rownum
 	from cantidad_por_orden cpo
 	window w as (partition by cpo.cust_id)
 	order by cpo.fecha_orden asc
-), k as(
+	)
 	select (u.cantidad_orden-i.cantidad_orden) as dif, u.id_cliente as id, u.orden_id as orden,
 	age(u.fc,i.fc) as diferencia_hasta_la_otra_compra
 	from u join i on (u.rownum = i.rownum+1)
 	where u.id_cliente = i.id_cliente  
-	order by u.id_cliente asc	
-)
-select k.id as id_customer, c.contact_name as nombre, c.company_name as compañia, 
-avg(k.dif) as promedio_compra
-from k join customers c on (k.id = c.customer_id)
-group by k.id, c.contact_name, c.company_name 
-order by k.id;
+	order by u.id_cliente asc;
+
+-- Query que nos proporciona el promedio de compra, respecto al orden ascendiente de la fecha de cada compra por cliente, 	--
+-- el promedio es calculado por medio de: la suma de todas las diferencias entre la compra realizada en t y la realizada en t-1 --
+-- todo eso dividido entre el total de compras por cliente.									--
+
+	with u as(
+		select cpo.cantidad as cantidad_orden, cpo.id_ord as orden_id, cpo.cust_id as id_cliente,
+		cpo.fecha_orden as fc, row_number() over w as rownum
+		from cantidad_por_orden cpo
+		window w as (partition by cpo.cust_id)
+		order by cpo.fecha_orden asc
+	), i as(
+		select cpo.cantidad as cantidad_orden, cpo.id_ord as orden_id, cpo.cust_id as id_cliente,
+		cpo.fecha_orden as fc, row_number() over w as rownum
+		from cantidad_por_orden cpo
+		window w as (partition by cpo.cust_id)
+		order by cpo.fecha_orden asc
+	), k as(
+		select (u.cantidad_orden-i.cantidad_orden) as dif, u.id_cliente as id, u.orden_id as orden,
+		age(u.fc,i.fc) as diferencia_hasta_la_otra_compra
+		from u join i on (u.rownum = i.rownum+1)
+		where u.id_cliente = i.id_cliente  
+		order by u.id_cliente asc	
+	)
+	select k.id as id_customer, c.contact_name as nombre, c.company_name as compañia, 
+	avg(k.dif) as promedio_compra
+	from k join customers c on (k.id = c.customer_id)
+	group by k.id, c.contact_name, c.company_name 
+	order by k.id;
 
 -- Promedio por mes de las compras realizadas por cada cliente --
-create view separacion_por_meses as (
-select cpo.cantidad as cantidad_orden, cpo.id_ord as orden_id, cpo.cust_id as id_cliente,
-cpo.fecha_orden as fc, row_number() over t as cust_row
-from cantidad_por_orden cpo
-window t as (partition by cpo.cust_id)
-order by cpo.cust_id, cpo.fecha_orden);
 
-drop view separacion_por_meses; --Por si se requiere quitar la vista--
-
-select * from separacion_por_meses; 
-
-create view meses_con_repetidos as (with r as (
+	create view separacion_por_meses as (
 	select cpo.cantidad as cantidad_orden, cpo.id_ord as orden_id, cpo.cust_id as id_cliente,
 	cpo.fecha_orden as fc, row_number() over t as cust_row
 	from cantidad_por_orden cpo
 	window t as (partition by cpo.cust_id)
-	order by cpo.cust_id, cpo.fecha_orden
-)
-select extract(month from r.fc) as fecha_inicial, (r.cantidad_orden - spm.cantidad_orden) as diferencia_por_compra,
-r.orden_id as orden, r.id_cliente as id_customer, r.cust_row as identificador,
-r.fc - extract(day from r.fc)*'1 day'::interval + '1 day'::interval as fecha_inicio_mes, 
-r.fc - extract(day from r.fc)*'1 day'::interval + '1 day'::interval + 30*'1 day':: interval as fecha_fin_mes
-from r join separacion_por_meses spm on(r.cust_row = spm.cust_row+1) 
-where r.id_cliente = spm.id_cliente and age(r.fc,spm.fc)<30*'1 day'::interval 
-order by r.id_cliente, r.orden_id);
+	order by cpo.cust_id, cpo.fecha_orden);
 
-drop view meses_con_repetidos; --Por si se requiere quitar la vista--
+	drop view separacion_por_meses; --Por si se requiere quitar la vista--
 
-select* from meses_con_repetidos;
+	select * from separacion_por_meses; 
 
-with e as(
-	select avg(mcr.diferencia_por_compra) as promedio_de_compras_realizadas_en_un_mes,
-	mcr.fecha_inicial as inicial, mcr.id_customer as id, mcr.fecha_inicio_mes as inicio, mcr.fecha_fin_mes as fin
-	from meses_con_repetidos mcr
-	group by mcr.fecha_inicial, mcr.id_customer,mcr.fecha_inicio_mes, mcr.fecha_fin_mes
-	order by mcr.id_customer, mcr.fecha_inicio_mes 
-)
-select e.id, e.promedio_de_compras_realizadas_en_un_mes, e.inicio, e.fin
-from e;
+	create view meses_con_repetidos as (with r as (
+		select cpo.cantidad as cantidad_orden, cpo.id_ord as orden_id, cpo.cust_id as id_cliente,
+		cpo.fecha_orden as fc, row_number() over t as cust_row
+		from cantidad_por_orden cpo
+		window t as (partition by cpo.cust_id)
+		order by cpo.cust_id, cpo.fecha_orden
+	)
+	select extract(month from r.fc) as fecha_inicial, (r.cantidad_orden - spm.cantidad_orden) as diferencia_por_compra,
+	r.orden_id as orden, r.id_cliente as id_customer, r.cust_row as identificador,
+	r.fc - extract(day from r.fc)*'1 day'::interval + '1 day'::interval as fecha_inicio_mes, 
+	r.fc - extract(day from r.fc)*'1 day'::interval + '1 day'::interval + 30*'1 day':: interval as fecha_fin_mes
+	from r join separacion_por_meses spm on(r.cust_row = spm.cust_row+1) 
+	where r.id_cliente = spm.id_cliente and age(r.fc,spm.fc)<30*'1 day'::interval 
+	order by r.id_cliente, r.orden_id);
 
-Explicación del ultimo query: En el ultimo query, se realiza, con la ayuda de dos vistas, la diferencia de tiempo entre la compra realizada en t tiempo y la realizada en t-1.
+	drop view meses_con_repetidos; --Por si se requiere quitar la vista--
+
+	select* from meses_con_repetidos;
+
+	with e as(
+		select avg(mcr.diferencia_por_compra) as promedio_de_compras_realizadas_en_un_mes,
+		mcr.fecha_inicial as inicial, mcr.id_customer as id, mcr.fecha_inicio_mes as inicio, mcr.fecha_fin_mes as fin
+		from meses_con_repetidos mcr
+		group by mcr.fecha_inicial, mcr.id_customer,mcr.fecha_inicio_mes, mcr.fecha_fin_mes
+		order by mcr.id_customer, mcr.fecha_inicio_mes 
+	)
+	select e.id, e.promedio_de_compras_realizadas_en_un_mes, e.inicio, e.fin
+	from e;
+
+Explicación del ultimo query: En el último query, se realiza, con la ayuda de dos vistas, la diferencia de tiempo entre la compra realizada en t tiempo y la realizada en t-1.
 Si se diera el caso de que la diferencia de tiempo es mayor a un mes (30 días) entonces ya no se toma en cuenta el dato, puesto que, en ese mes la delta va a ser cero. 
-Por lo tanto, los resultados que nos arroja el query son todas las compras que se realizaron en cierto mes, en donde debio de haber mas de una compra, así para obtener la delta 
-que se promedia de acuerdo a la suma de las diferencias, entre el total de compra de ese mes. 
+Por lo tanto, los resultados que nos arroja el query son todas las compras que se realizaron en cierto mes, en donde debe de haber más de una compra, para así obtener la delta 
+que se promedia de acuerdo con la suma de las diferencias, entre el total de compra de ese mes.
+
 
